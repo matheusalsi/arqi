@@ -1,6 +1,3 @@
-;Trabalho INTEL - Arquitetura e Organização de computadoeres I
-;Matheus Almeida Silva - 00316326
-;
 	.model		small
 	.stack
 
@@ -8,12 +5,13 @@ CR		equ		0dh
 LF		equ		0ah 
 
 	.data
-FileName		db		8 dup (?)		; Nome do arquivo a ser lido
+FileName		db		9 dup (?)		; Nome do arquivo a ser lido
 FileType		db		".txt", 0			; Tipo do arquivo
-FileNameString	db		11 dup			;
+FileNameOutput	db		12 dup (?)		;
 FileBuffer		db		10 dup (?)		; Buffer de leitura do arquivo
 FileHandle		dw		0			; Handler do arquivo
-FileNameBuffer		db		150 dup (?)
+FileNameBuffer	db		150 dup (?)
+pointer			dw		0
 
 MsgPedeArquivo		db	"Nome do arquivo: ", 0
 MsgErroOpenFile		db	"Erro na abertura do arquivo.", CR, LF, 0
@@ -126,6 +124,7 @@ GetFileName	proc	near
 
 	;	// Coloca o '\0' no final do string
 	;	*d = '\0';
+	mov		pointer, di
 	mov		byte ptr es:[di],0
 	ret
 
@@ -157,17 +156,22 @@ printf_s	endp
 ;   Checa se FileName tem extensão em txt e converte para .txt
 ;--------------------------------------------------------------------
 FileNameCheck proc	near
-	mov		dl,[bx]
-	cmp		dl,0
-	je		write_extension
-
-	cmp		dl,46
-	je		end_FileNameCheck
+	lea		di, FileName
+	mov		cx, 8
+	cld						;Limpa o Direction Flag
+	mov 	al,'.'
+	repne	scasb	
+	jne		write_extension
+	dec		di
+	jmp		end_FileNameCheck
 	
 
 write_extension:
-	mov		[bx],'.txt'
-
+	mov 	di,	pointer
+	lea		si, FileType
+	mov		cx, 5
+	rep		movsb
+	
 
 end_FileNameCheck:
 	ret
