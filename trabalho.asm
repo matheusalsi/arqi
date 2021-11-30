@@ -1,3 +1,5 @@
+;Trabalho Intel
+;Matheus Almeida Silva - 316326	
 	.model		small
 	.stack
 
@@ -33,8 +35,6 @@ FracFlag			db		0
 LineFlag			db		0				;Flag para verificar a validade da linha 0 - Válida / 1 - Inválida ou Fim da Linha
 SumInt				dw		0				;Resultado da soma com parte inteira e fracionária
 SumFrac				dw		0
-MeanInt				dw		0				;;Resultado da média com parte inteira e fracionária
-MeanFrac			dw		0
 MeantIntFrac		dw		0
 MeanDigitCounter	dw		0			
 
@@ -50,9 +50,9 @@ MeanString			db		6 dup (?)
 IntString			db		4 dup (?)				;Variáveis para a função Sprintf
 FracString			db		4 dup (?)				;Variáveis para a função Sprintf
 IndexString			dw		0
-sw_n				dw	0
-sw_f				db	0
-sw_m				dw	0
+sw_n				dw		0
+sw_f				db		0
+sw_m				dw		0
 BufferWRWORD		db		10 dup (?)				;Variável para a função printf_w
 
 MAXSTRING			equ		200
