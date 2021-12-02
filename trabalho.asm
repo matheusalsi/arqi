@@ -1,5 +1,10 @@
-;Trabalho Intel
-;Matheus Almeida Silva - 316326	
+;										UNIVERSIDADE FEDERAL DO RIO GRANDE DO SUL
+;									INSTITUTO DE INFORMÁTICA – INFORMÁTICA APLICADA
+;								 Arquitetura e Organização de Computadores I – 2020/2
+;								Profs. José Rodrigo Azambuja, Renato Ribas e Sérgio Cechin											
+;											    Trabalho de Programação 3
+;											     Processador Intel (80x86)
+;											  Matheus Almeida Silva - 316326	
 	.model		small
 	.stack
 
@@ -7,13 +12,12 @@ CR					equ		0dh
 LF					equ		0ah 
 
 	.data
-FileNameSrc			db		12 dup (?)		; Nome do arquivo a ser lido
-FileType			db		".res", 0		; Tipo do arquivo
-FileNameDst			db		12 dup (?)		;
-FileBuffer			db		10 dup (?)		; Buffer de leitura do arquivo
-FileHandleSrc		dw		0				; Handler do arquivo origem
-FileHandleDst		dw		0				; Handler do arquivo destino
-FileNameBuffer		db		150 dup (?)
+FileNameSrc			db		13 dup (?)		;Nome do arquivo a ser lido
+FileType			db		".res", 0		;Tipo do arquivo a ser escrito,i.e .res
+FileNameDst			db		13 dup (?)		;Nome do arquivo a ser escrito
+FileBuffer			db		10 dup (?)		;Buffer de leitura do arquivo
+FileHandleSrc		dw		0				;Handler do arquivo origem
+FileHandleDst		dw		0				;Handler do arquivo destino
 
 IntPointer			dw		0				;Variável Ponteiro para o IntBuffer
 FracPointer			dw		0				;Variável Ponteiro para o FracBuffer
@@ -27,36 +31,39 @@ IntVectorBuffer		dw		200 dup (?)		;Vetor Buffer da parte inteira dos números v�
 FracVectorBuffer	dw		200 dup (?)		;Vetor Buffer da parte fracionária dos números válidos
 IntBuffer			db		4	dup (?)		;Buffer para a string da parte inteira 
 FracBuffer			db		3	dup (?)		;Buffer para a string da parte fracionária
-LastCharacterFlag	db		0				
-HasNumberFlag		db		0
-NumberValityFlag	db		0
+LastCharacterFlag	db		0				;Flag para identificar se é o último caractere
+HasNumberFlag		db		0				;Flag para identificar se foi armazenado algum número na linha
+NumberValityFlag	db		0				;Flag apra identificar se o número armazenado é válido
 IntFlag				db		1				;Flags para verificar se estamos analisando um inteiro ou fracionário
 FracFlag			db		0				
 LineFlag			db		0				;Flag para verificar a validade da linha 0 - Válida / 1 - Inválida ou Fim da Linha
 SumInt				dw		0				;Resultado da soma com parte inteira e fracionária
 SumFrac				dw		0
-MeantIntFrac		dw		0
-MeanDigitCounter	dw		0			
+MeantIntFrac		dw		0				;Resultado do cálculo com a parte inteira e fracionária concatenadas 
+MeanDigitCounter	dw		0				;Contador de dígitos para controle da escrita da média
 
-MsgPedeArquivoSrc	db	"Nome do arquivo: ", 0
+;Variáveis com Strings a serem escritas na tela 
+MsgPedeArquivoSrc	db	"Nome do arquivo: ", 0						
 MsgPedeArquivoDst	db	"Nome do arquivo destino: ", 0
 MsgErroOpenFile		db	"Erro na abertura do arquivo.", CR, LF, 0
 MsgErroCreateFile	db	"Erro na criacao do arquivo.", CR, LF, 0
 MsgErroReadFile		db	"Erro na leitura do arquivo.", CR, LF, 0
 MsgErroWriteFile	db	"Erro na escrita do arquivo.", CR, LF, 0
+MsgEmptyFile		db	"O arquivo informado esta vazio.", CR, LF, 0
 MsgCRLF				db	CR, LF, 0
 
-MeanString			db		6 dup (?)
+MeanString			db		6 dup (?)				;String da média calculada
 IntString			db		4 dup (?)				;Variáveis para a função Sprintf
 FracString			db		4 dup (?)				;Variáveis para a função Sprintf
-IndexString			dw		0
-sw_n				dw		0
+IndexString			dw		0						;Índice da string para escrita dos números
+
+sw_n				dw		0						;Variáveis para a função sprintf_w
 sw_f				db		0
 sw_m				dw		0
 BufferWRWORD		db		10 dup (?)				;Variável para a função printf_w
 
 MAXSTRING			equ		200
-String				db		MAXSTRING dup (?)		; Usado na funcao gets
+String				db		MAXSTRING dup (?)		;Usado na funcao gets
 
 
 	
@@ -67,6 +74,7 @@ String				db		MAXSTRING dup (?)		; Usado na funcao gets
 ;--------------------------------------------------------------------
 	;GetFileName();
 	call	GetFileNameSrc
+	;Função que converte o FileNameDst com o FileNameSrc + .ret
 	call	FileNameOutput
 
 
@@ -122,27 +130,27 @@ Continue2:
 Continue3:
 
 	;	if (AX==0) break;
-	cmp		ax,0
-	jz		Set_LastCharacterFlag
-	cmp		dl,CR
+	cmp		ax,0					;Caso Ax == 0 Termina a leitura e liga a flag LastCharacter
+	jz		Set_LastCharacterFlag	
+	cmp		dl,CR					;Caso seja CR, encerra a linha
 	jz		end_Line
-	cmp		dl,LF
+	cmp		dl,LF					;Caracter LF aceito
 	jz		Continue2
 	cmp		LineFlag,1				;Se a LineFlag estiver ligada, logo a linha é inválida, pula para o próximo caractere até achar o CR ou LF
 	jz		Continue2
-	cmp		dl,20h					;dl - 20h(SPACE)
+	cmp		dl,20h					;Caracter SPACE aceito e continua a leitura
 	jz		Continue2				
-	cmp		dl,9h					; dl - 9h(TAB)
+	cmp		dl,9h					;Caracter TAB aceito e continua a leitura
 	jz		Continue2
-	cmp		dl,','
+	cmp		dl,','					;Caso seja ',' ou '.', altera as flags do inteiro e fracionário
 	jz		Set_NumberFlag
 	cmp		dl,'.'
-	jz		Set_NumberFlag
+	jz		Set_NumberFlag			;Verifica se o caracter está no intervalor '0'-'9'
 	cmp		dl,'0'
 	jb		Set_InvalidLineFlag
 	cmp		dl,'9'
-	ja		Set_InvalidLineFlag
-	jmp		Set_Number
+	ja		Set_InvalidLineFlag		;Caso não esteja altera a flag da linha para inválida
+	jmp		Set_Number				;Pula para o armazenamento do caractere número
 
 Set_LastCharacterFlag:
 	mov		LastCharacterFlag,1
@@ -162,9 +170,11 @@ Set_NumberFlag:
 end_Line:
 	cmp		HasNumberFlag,0				;Checa se a linha tem algum número a ser validado
 	jz		InitializeNewLine
-	call 	CheckNumberVality			;Checa a válidade do número armazenado na linha e armazena no vetor de números
+	call 	CheckNumberVality			;Checa a válidade do número armazenado na linha, converte a string em número e armazena no Vetor de Int e Frac
 	cmp		NumberValityFlag,1
-	jz		InitializeWrite
+	jz		InitializeWrite				;Caso seja válido, escreve a linha com o conteúdo
+
+;Incializa todas as variáveis de controle do caractere
 InitializeNewLine:
 	mov		NumberValityFlag,0
 	mov		HasNumberFlag,0
@@ -180,15 +190,16 @@ InitializeNewLine:
 	jz		MidJumpFunctionWrite
 	jmp		Continue2					;Ao fim da linha pula para a escrita do próximo caractere 
 
+;Altera a flag HasNumber e faz o controle identificando pelas flags se é um inteiro ou fracionário
 Set_Number:
-	mov		HasNumberFlag,1
+	mov		HasNumberFlag,1				
 	cmp		IntFlag,1
 	jz		Set_Int
 	cmp		FracFlag,1
 	jz		Set_Frac
 	jmp		Set_InvalidLineFlag
 
-Set_Int:
+Set_Int:								;Armazena o caractere na string IntBuffer
 	lea		bx,IntBuffer
 	add		bx,IntPointer
 	mov		byte ptr[bx],dl
@@ -197,9 +208,7 @@ Set_Int:
 	mov		byte ptr[bx],0h
 	jmp		Continue2
 
-	
-
-Set_Frac:
+Set_Frac:								;Armazena o caractere na string FracBuffer
 	lea		bx,FracBuffer
 	add		bx,FracPointer
 	mov		byte ptr[bx],dl
@@ -208,12 +217,12 @@ Set_Frac:
 	mov		byte ptr[bx],0h
 	jmp		Continue2
 
-MidJumpFunctionWrite:
+MidJumpFunctionWrite:					;Label para um pulo intermediário
 	jmp		FunctionWrite
 
-
+;Escreve a string com os digítos 000 - e controle do espaço
 InitializeWrite:
-	call 	ConvertCounter					;Escreve a string com os digítos 000 - 
+	call 	ConvertCounter					
 	mov		bx,FileHandleDst
 	mov		dl,'0'
 	add		dl,Counter100
@@ -229,8 +238,7 @@ InitializeWrite:
 	mov		dl,'-'
 	call	setChar
 
-
-	lea		bx, IntVectorBuffer			;Checa se a quantidade de algarismos na parte inteira para o controle de vírgula e espaços
+	lea		bx, IntVectorBuffer			;Checa se a quantidade de algarismos na parte inteira para o controle de espaços para o alinhamento da vírgula
 	add		bx, IndexCounter
 	sub		bx, 2
 	mov		ax,[bx]
@@ -251,6 +259,7 @@ SP_one:
 	call	setChar
 	jmp		NumberWrite
 
+;Escreve o Número com a parte inteira e fracionária separados por uma vírgula
 NumberWrite:
 	lea		bx, IntVectorBuffer			;Transfere o valor do vetor para o Ax
 	add		bx, IndexCounter
@@ -260,7 +269,7 @@ NumberWrite:
 	call	sprintf_w
 	mov		IndexString,0
 
-SetIntString:	;*****************
+SetIntString:	
 	lea		bx, IntString				;Escreve a String do Número inteiro no arquivo até encontrar \0
 	add		bx, IndexString
 	mov		dl,[bx]
@@ -273,20 +282,20 @@ SetIntString:	;*****************
 
 
 
-NumberWrite2:
+NumberWrite2:							;Continua a escrita e escreve a , separando as duas partes
 	mov		bx,FileHandleDst
 	mov		dl,','
 	call	setChar
 
-	lea		bx, FracVectorBuffer			;Transfere o valor do vetor para o Ax
+	lea		bx, FracVectorBuffer		;Transfere o valor do vetor para o Ax
 	add		bx, IndexCounter
 	sub		bx, 2
 	mov		ax,[bx]
-	lea		bx,FracString			;Converte o inteiro de 16bits em uma string
+	lea		bx,FracString				;Converte o inteiro de 16bits em uma string
 	call	sprintf_w
 	mov		IndexString,0
 
-SetFracString:	;******************
+SetFracString:	
 	lea		bx, FracString				;Escreve a String do Número inteiro no arquivo até encontrar \0	
 	add		bx, IndexString
 	mov		dl,[bx]
@@ -300,7 +309,8 @@ SetFracString:	;******************
 MidJumpInitializeNewLine:
 	jmp		InitializeNewLine
 
-NumberWrite3:
+;Escreve " - 00" com o valor final da paridade de cada parte do número 
+NumberWrite3:	
 	mov		bx,FileHandleDst
 	mov		dl,' '
 	call	setChar
@@ -309,25 +319,25 @@ NumberWrite3:
 	mov		dl,' '
 	call	setChar
 
-	lea		bx, IntVectorBuffer			;Transfere o valor do vetor para o Ax
+	lea		bx, IntVectorBuffer			;Transfere o valor do vetor para o Ax e chama a função paridade
 	add		bx, IndexCounter
 	sub		bx, 2
 	mov		ax,[bx]
-	call	Parity
+	call	Parity						;Soma o valor da paridade com '0' e escreve o caractere '0' ou '1'
 	add		dl, '0'
 	mov		bx,FileHandleDst
 	call	setChar
 
-	lea		bx, FracVectorBuffer		;Transfere o valor do vetor para o Ax
+	lea		bx, FracVectorBuffer		;Transfere o valor do vetor para o Ax e chama a função paridade
 	add		bx, IndexCounter
 	sub		bx, 2
 	mov		ax,[bx]
-	call	Parity
+	call	Parity						;Soma o valor da paridade com '0' e escreve o caractere '0' ou '1'
 	add		dl, '0'
 	mov		bx,FileHandleDst
 	call	setChar
 
-	mov		bx,FileHandleDst
+	mov		bx,FileHandleDst			;Encerra a linha com CR LF
 	mov		dl,CR
 	call	setChar
 	mov		dl,LF
@@ -335,7 +345,9 @@ NumberWrite3:
 	jnc		MidJumpInitializeNewLine
 	jmp		Continue4
 
-FunctionWrite:
+FunctionWrite:						;Escreve "SOMA: "
+	cmp		dl,0
+	jz		EmptyFile
 	mov		bx,FileHandleDst
 	mov		dl,'S'
 	call	setChar
@@ -355,8 +367,9 @@ FunctionWrite:
 	call	sprintf_w
 	mov		IndexString,0
 
-SetFunctionIntString:	;*****************
-	lea		bx, IntString				;Escreve a String do Número inteiro no arquivo até encontrar \0
+;Escreve a String do Número inteiro no arquivo até encontrar \0
+SetFunctionIntString:
+	lea		bx, IntString				
 	add		bx, IndexString
 	mov		dl,[bx]
 	cmp		dl,0
@@ -366,7 +379,13 @@ SetFunctionIntString:	;*****************
 	inc		IndexString
 	jmp		SetFunctionIntString
 
-FunctionWrite2:
+;Controle caso o arquivo esteja vazio
+EmptyFile:								
+	Lea		BX,MsgEmptyFile				;Imprime a mensagem de arquivo vazio e encerra a escrita
+	call	printf_s
+	jmp		EndFile
+
+FunctionWrite2:							;Escreve a vírgula separando a parte inteira da fracionária e continua a escrita para a parte fracionária
 	mov		bx,FileHandleDst
 	mov		dl,','
 	call	setChar
@@ -375,7 +394,7 @@ FunctionWrite2:
 	call	sprintf_w
 	mov		IndexString,0
 
-SetFunctionFracString:	;*****************
+SetFunctionFracString:
 	lea		bx, FracString				;Escreve a String do Número inteiro no arquivo até encontrar \0
 	add		bx, IndexString
 	mov		dl,[bx]
@@ -386,7 +405,7 @@ SetFunctionFracString:	;*****************
 	inc		IndexString
 	jmp		SetFunctionFracString
 
-FunctionWrite3:
+FunctionWrite3:							;Escreve "MEDIA: "
 	mov		bx,FileHandleDst
 	mov		dl,CR
 	call	setChar
@@ -407,11 +426,9 @@ FunctionWrite3:
 	mov		dl,' '
 	call	setChar
 
-
-	
-	call	Mean
-	mov		ax,MeantIntFrac
-	
+;Chama a função que cálcula a média e a escreve
+	call	Mean						;Cálcula a média e o arredondamento e retorna um número completo sem vírgulas
+	mov		ax,MeantIntFrac				;Controle de algarismos para separa o número sem vírgula
 	cmp		ax,999
 	jbe		Mean3digits
 	cmp		ax,9999
@@ -419,6 +436,7 @@ FunctionWrite3:
 	cmp		ax,9999
 	jae		Mean5digits
 	jmp		MeanNumberWrite
+
 
 Mean3digits:
 	mov		MeanDigitCounter,3
@@ -429,7 +447,7 @@ Mean4digits:
 Mean5digits:
 	mov		MeanDigitCounter,5
 
-MeanNumberWrite:
+MeanNumberWrite:						;Converte o número de 16bits MeanIntFrac em uma string
 	mov		ax,MeantIntFrac
 	lea		bx, MeanString
 	call	sprintf_w
@@ -438,7 +456,7 @@ MeanNumberWrite:
 MeanIntWrite:	
 	cmp		MeanDigitCounter,2
 	jz		FunctionWrite4
-	lea		bx, MeanString				;Escreve a String do Número inteiro no arquivo até o contador chegar a ter somente 2 digitos sobrando
+	lea		bx, MeanString				;Escreve da String a parte inteira do número no arquivo até o contador chegar a ter somente 2 digitos sobrando,i.e parte fracionária sobrando.
 	add		bx, IndexString
 	mov		dl,[bx]
 	mov		bx,FileHandleDst
@@ -447,13 +465,13 @@ MeanIntWrite:
 	inc		IndexString
 	jmp		MeanIntWrite
 
-FunctionWrite4:
+FunctionWrite4:							;Escreve a vírgula separando a parte inteira da fracionária
 	mov		bx,FileHandleDst
 	mov		dl,','
 	call	setChar
 
 MeanFracWrite:	
-	lea		bx, MeanString				;Escreve a String do Número inteiro no arquivo até o contador chegar a 0 digitos sobrando
+	lea		bx, MeanString				;Escreve a String do número frácionario no arquivo até o dl ser '\0'
 	add		bx, IndexString
 	mov		dl,[bx]
 	cmp		dl,0
@@ -464,7 +482,7 @@ MeanFracWrite:
 	jmp		MeanFracWrite
 
 
-FunctionWrite5:
+FunctionWrite5:							;Encerra a escrita do arquivo com CR LF
 	mov		bx,FileHandleDst
 	mov		dl,CR
 	call	setChar
@@ -539,6 +557,7 @@ fopen	proc	near
 	ret
 fopen	endp
 
+
 ;--------------------------------------------------------------------
 ;Fun��o Cria o arquivo cujo nome est� no string apontado por DX
 ;		boolean fcreate(char *FileName -> DX)
@@ -553,6 +572,7 @@ fcreate	proc	near
 	ret
 fcreate	endp
 
+
 ;--------------------------------------------------------------------
 ;Entra:	BX -> file handle
 ;Sai:	CF -> "0" se OK
@@ -562,6 +582,7 @@ fclose	proc	near
 	int		21h
 	ret
 fclose	endp
+
 
 ;--------------------------------------------------------------------
 ;Função	Le um caractere do arquivo identificado pelo HANLDE BX
@@ -579,7 +600,8 @@ getChar	proc	near
 	mov		dl,FileBuffer
 	ret
 getChar	endp
-		
+
+
 ;--------------------------------------------------------------------
 ;Entra: BX -> file handle
 ;       dl -> caractere
@@ -595,7 +617,7 @@ setChar	proc	near
 	ret
 setChar	endp	
 
-;
+
 ;--------------------------------------------------------------------
 ;Funcao Le um string do teclado e coloca no buffer apontado por BX
 ;		gets(char *s -> bx)
@@ -620,6 +642,7 @@ gets	proc	near
 	ret
 gets	endp
 
+
 ;--------------------------------------------------------------------
 ;	Função que escreve uma string na tela.
 ;       printf_s(char *s -> BX)
@@ -642,6 +665,7 @@ ps_1:
 
 printf_s	endp
 
+
 ;--------------------------------------------------------------------
 ;Função: Escreve o valor de AX na tela
 ;		printf("%
@@ -658,7 +682,7 @@ printf_w	proc	near
 	ret
 printf_w	endp
 
-;
+
 ;--------------------------------------------------------------------
 ;Função: Converte um inteiro (n) para (string)
 ;		 sprintf(string, "%d", n)
@@ -742,17 +766,65 @@ sw_continua2:
 		
 sprintf_w	endp
 
+
+;--------------------------------------------------------------------
+;Função:Converte um ASCII-DECIMAL para HEXA
+;Entra: (S) -> DS:BX -> Ponteiro para o string de origem
+;Sai:	(A) -> AX -> Valor "Hex" resultante
+;Algoritmo:
+;	A = 0;
+;	while (*S!='\0') {
+;		A = 10 * A + (*S - '0')
+;		++S;
+;	}
+;	return
+;--------------------------------------------------------------------
+atoi	proc near
+
+		; A = 0;
+		mov		ax,0
+		
+atoi_2:
+		; while (*S!='\0') {
+		cmp		byte ptr[bx], 0
+		jz		atoi_1
+
+		; 	A = 10 * A
+		mov		cx,10
+		mul		cx
+
+		; 	A = A + *S
+		mov		ch,0
+		mov		cl,[bx]
+		add		ax,cx
+
+		; 	A = A - '0'
+		sub		ax,'0'
+
+		; 	++S
+		inc		bx
+		
+		;}
+		jmp		atoi_2
+
+atoi_1:
+		; return
+		ret
+
+atoi	endp
+
+
 ;--------------------------------------------------------------------
 ;   Checa se FileName tem extensão em txt e converte para .txt
 ;--------------------------------------------------------------------
 FileNameOutput proc	near
 	lea		di, FileNameDst
 	lea		si, FileNameSrc
-	mov		cx, 12
+	mov		cx, 13
 	rep 	movsb
 
 	lea		di, FileNameDst
-	mov		cx, 12
+	mov		cx, 13
 	cld						;Limpa o Direction Flag
 	mov 	al,'.'
 	repne	scasb
@@ -771,40 +843,6 @@ write_extension:
 end_FileNameOutput:
 	ret
 FileNameOutput endp
-
-;--------------------------------------------------------------------
-;   Função que checa se o número é válido e armazena ele no vetor de
-;	números válidos
-;--------------------------------------------------------------------
-;ClearBuffer proc	near
-;	mov			cx,IntPointer
-
-;ClearLoop1:
-;	lea			bx,IntBuffer
-;	add			bx,cx
-;	mov			byte ptr[bx],0
-;	dec			cx
-;	cmp			cx,0
-;	jz			ClearFrac
-;	jmp			ClearLoop1
-
-;ClearFrac:
-;	mov			cx,FracPointer
-
-;ClearLoop2:
-;	lea			bx,FracBuffer
-;	add			bx,cx
-;	mov			byte ptr[bx],0
-;	dec			cx
-;	cmp			cx,0
-;	jz			end_ClearBuffer
-;	jmp			ClearLoop2
-;
-;end_ClearBuffer:
-;	mov		cx,0
-;	ret
-;ClearBuffer endp
-
 
 
 ;--------------------------------------------------------------------
@@ -854,30 +892,30 @@ CheckNumberVality endp
 ;	ax -> Número a ser verificado
 ;--------------------------------------------------------------------
 Parity proc	near
-		mov		dx, 0h
-Loop_shift:	
+	mov		dx, 0						
+ShiftLoop:	
 	shr 	ax, 1
-	jc      Invert_dl	
-	jmp		Par_test
+	jc      Invert	
+	jmp		TestParity
 
-Invert_dl:
+Invert:
 	not     dl
-	jmp		Par_test
+	jmp		TestParity
 
-Par_test:
-	cmp		ax, 0h
-	je		Continue_par
-	jmp		Loop_shift
+TestParity:
+	cmp		ax, 0
+	je		ParityContinue
+	jmp		ShiftLoop
 
-Continue_par:
+ParityContinue:
 	cmp		dl, 255
-	je     	Switch_FF_to_1
-	jmp     End_shift
+	je     	Switch255To1
+	jmp     EndShift
 
-End_shift:	
+EndShift:	
 	ret
 
-Switch_FF_to_1:
+Switch255To1:
 	mov		dl, 1h
 	ret
 	
@@ -889,20 +927,20 @@ Parity endp
 ;	inteira e fracionada
 ;--------------------------------------------------------------------
 Sum proc	near
-	mov		cx,IndexCounter
+	mov		cx,IndexCounter			;Armazena o IndexCounter no Bx e o endereço do início do Vetor de Inteiros no Ax
 	lea		bx,IntVectorBuffer
 	mov		ax,[bx]
 	mov		SumInt,ax
 
 SumIntLoop:
-	add		bx,2
+	add		bx,2					;Percorre o vetor de dw dos inteiros e vai somando eles no ax
 	add		ax,[bx]
-	mov		SumInt,ax
+	mov		SumInt,ax				;Armazena o ax no SumInt
 	sub		cx,2
-	cmp		cx,0
-	jnz		SumIntLoop
+	cmp		cx,0					;Enquanto o contador não for 0, retorna ao loop
+	jnz		SumIntLoop				
 
-	mov		cx,IndexCounter
+	mov		cx,IndexCounter			;Função idêntica para os fracionários
 	lea		bx,FracVectorBuffer
 	mov		ax,[bx]
 	mov		SumFrac,ax
@@ -911,7 +949,7 @@ SumFracLoop:
 	add		bx,2
 	add		ax,[bx]
 	cmp		ax,99
-	ja		SumCarry
+	ja		SumCarry				;Realiza o controle para caso a soma dos fracionários ultrapasse 99 gerar um carry para a SomaInt
 SumFracLoop2:
 	mov		SumFrac,ax
 	sub		cx,2
@@ -919,7 +957,7 @@ SumFracLoop2:
 	jz		end_Sum
 	jmp		SumFracLoop
 
-SumCarry:
+SumCarry:							;Subtrai 100 do fracionário e passa o carry somando 1 no SomaInt
 	sub		ax,100
 	add		SumInt,1
 	jmp		SumFracLoop2
@@ -930,28 +968,27 @@ Sum endp
 
 
 ;--------------------------------------------------------------------
-;********************************************************************
 ;   Função que cálcula a média dos números armazenados e armazena sua
 ;	parte inteira e fracionada
 ;--------------------------------------------------------------------
 Mean proc	near
-	mov		dx,0
-	mov		ax,SumInt
+	mov		dx,0				;A função Consiste na na soma da parte inteira * 100 + parte fracionária da soma e sua divisão pelo AuxCounter
+	mov		ax,SumInt			;Realiza SumInt * 100
 	mov		bx,100
 	mul		bx
 
-	add		ax,SumFrac
-	mov		bx,AuxCounter
-	div		bx
-	mov		MeantIntFrac,ax
+	add		ax,SumFrac			;Realiza 100*SumInt + SumFrac
+	mov		bx,AuxCounter		;Divide esse valor pelo Aux Counter e transfere para a variável MeanIntFrac
+	div		bx					
+	mov		MeantIntFrac,ax		;Armazena o resultado da divisão até a 2 casa decimal como inteiro
 
-	mov		ax,dx
-	shl		ax,1
-	cmp		ax,dx
-	jae		rounding
+	mov		ax,dx				;Controle de Arredondamento caso o valor após as 2 casas decimais seja maior ou igual a 0,5
+	shl		ax,1				;Basicamente checa a desigualdade garantindo que o Resto/Divisor >= 1/2 -> 2*Resto >= Divisor
+	cmp		ax,AuxCounter		;Verifica se 2*Resto - Divisor >= 0
+	jae		rounding			
 	jmp		end_Mean
 
-rounding:
+rounding:						;Arredonda caso 2*Modulo - Divisor >= 0
 	add		MeantIntFrac,1
 
 end_Mean:
@@ -992,52 +1029,6 @@ Inc_001:
 end_ConvertCounter:
 	ret
 ConvertCounter endp
-
-;--------------------------------------------------------------------
-;Função:Converte um ASCII-DECIMAL para HEXA
-;Entra: (S) -> DS:BX -> Ponteiro para o string de origem
-;Sai:	(A) -> AX -> Valor "Hex" resultante
-;Algoritmo:
-;	A = 0;
-;	while (*S!='\0') {
-;		A = 10 * A + (*S - '0')
-;		++S;
-;	}
-;	return
-;--------------------------------------------------------------------
-atoi	proc near
-
-		; A = 0;
-		mov		ax,0
-		
-atoi_2:
-		; while (*S!='\0') {
-		cmp		byte ptr[bx], 0
-		jz		atoi_1
-
-		; 	A = 10 * A
-		mov		cx,10
-		mul		cx
-
-		; 	A = A + *S
-		mov		ch,0
-		mov		cl,[bx]
-		add		ax,cx
-
-		; 	A = A - '0'
-		sub		ax,'0'
-
-		; 	++S
-		inc		bx
-		
-		;}
-		jmp		atoi_2
-
-atoi_1:
-		; return
-		ret
-
-atoi	endp
 
 
 ;--------------------------------------------------------------------
