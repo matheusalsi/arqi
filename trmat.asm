@@ -1,6 +1,6 @@
 ;										UNIVERSIDADE FEDERAL DO RIO GRANDE DO SUL
 ;									INSTITUTO DE INFORMÁTICA – INFORMÁTICA APLICADA
-;								 Arquitetura e Organização de Computadores I – 2020/2
+;								 Arquitetura e Organização de Computadores I – 2021/1
 ;								Profs. José Rodrigo Azambuja, Renato Ribas e Sérgio Cechin											
 ;											    Trabalho de Programação 3
 ;											     Processador Intel (80x86)
