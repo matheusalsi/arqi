@@ -753,7 +753,7 @@ sw_continue:
 ;		*string++ = '0';
 	cmp		sw_f,0
 	jnz		sw_continua2
-	mov		[bx],'0'
+	mov		byte ptr[bx],'0'
 	inc		bx
 sw_continua2:
 
